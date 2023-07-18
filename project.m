@@ -5,7 +5,7 @@ hsvImage = rgb2hsv(image); % Convert to HSV color space
 
 % Step 2: Color Thresholding
 colorName = input('Enter the color name: ', 's'); % Prompt the user to enter the color name
-selectedColorRGB = web2rgb(colorName); % Convert the color name to RGB
+selectedColorRGB = colournames('natural', colorName); % Get the RGB values of the selected color
 selectedColorHSV = rgb2hsv(selectedColorRGB); % Convert the selected color to HSV
 hueThreshold = [selectedColorHSV(1) - 0.05, selectedColorHSV(1) + 0.05]; % Hue range around the selected color
 saturationThreshold = [selectedColorHSV(2) - 0.2, selectedColorHSV(2) + 0.2]; % Saturation range around the selected color
