@@ -77,8 +77,8 @@ function showRecentColors(color) {
 function getRecentColorCode(el) {
 	let rgb = window.getComputedStyle(el).getPropertyValue("background-color");
 	let bgColor = RGBToHex(rgb);
-	copyColor(bgColor);
-	notify(bgColor);
+	copyColor(rgb);
+	notify(rgb);
 }
 
 // function to copy the color on click
@@ -111,9 +111,16 @@ function RGBToHex(color) {
 
 // process image
 function processImage() {
-	if (length.recentColors <= 0) {
+	if (recentColors.length <= 0) {
+        noti.innerText = `Select a color first`;
+        noti.style.background = 'red';
+        noti.className = "notify shadow show animated slideInRight";
+        setTimeout(() => {
+            noti.className = "notify shadow show animated slideOutRight";
+        }, 2000);
 		return;
 	}
+
 	console.log("processing image");
 	let selected = recentColors[0];
 
@@ -172,6 +179,10 @@ function notify(color) {
 		noti.className = "notify shadow show animated slideOutRight";
 	}, 1000);
 }
+
+
+
+
 // This feature is the zoom and dragging one and i just copied it, i dont know shit about how this works
 window.onload = function () {
 	trackTransforms(ctx);
