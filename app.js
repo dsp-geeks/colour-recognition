@@ -4,9 +4,13 @@ let canvas = document.getElementById("canvas"),
 	recentColorsDiv = document.querySelector(".recent-colors"),
 	recentColors = [],
 	noti = document.querySelector(".notify"),
-	canvasImage;
+	canvasImage,
+	imageBox = document.querySelector(".image-box"),
+	imageBase64,
+	tolerance=document.querySelector(".tolerance"),
+	toleranceValue=0.2;
 
-window.onload = drawImageOnCanvas(false, "http://127.0.0.1:5500/demo.jpg");
+// window.onload = drawImageOnCanvas(false, "http://127.0.0.1:5500/demo.jpg");
 
 // function to draw image on canvas
 function drawImageOnCanvas(input, img) {
@@ -30,6 +34,16 @@ function drawImageOnCanvas(input, img) {
 		);
 	};
 	canvasImage = image;
+}
+
+function getBase64(event) {
+	const reader = new FileReader();
+	reader.onload = function (event) {
+		const base64Image = event.target.result;
+		imageBase64 = base64Image.split(",")[1];
+		console.log(imageBase64);
+	};
+	reader.readAsDataURL(event.target.files[0]);
 }
 
 // function that identifies the color on mouse move
@@ -109,19 +123,59 @@ function RGBToHex(color) {
 	return "#" + r + g + b;
 }
 
+// check tolerance value
+function checkTolerance() {
+	if(tolerance.value===''){
+		noti.innerText = `Enter tolerance`;
+		noti.style.background = "red";
+		noti.className = "notify shadow show animated slideInRight";
+		setTimeout(() => {
+			noti.className = "notify shadow show animated slideOutRight";
+		}, 2000);
+		return false
+	}
+	const toleranceInput = tolerance.value.trim(); // Remove leading and trailing spaces
+	const tolerance_value = parseFloat(toleranceInput);
+
+	if (isNaN(tolerance_value) || tolerance_value < 0 || tolerance_value > 1) {
+		noti.innerText = `Tolerance must be a decimal value between 0 and 1.`;
+		noti.style.background = "red";
+		noti.className = "notify shadow show animated slideInRight";
+		setTimeout(() => {
+			noti.className = "notify shadow show animated slideOutRight";
+		}, 2000);
+		return false
+	} else {
+		toleranceValue = tolerance_value
+		return true
+	}
+}
+
 // process image
 function processImage() {
 	if (recentColors.length <= 0) {
-        noti.innerText = `Select a color first`;
-        noti.style.background = 'red';
-        noti.className = "notify shadow show animated slideInRight";
-        setTimeout(() => {
-            noti.className = "notify shadow show animated slideOutRight";
-        }, 2000);
+		noti.innerText = `Select a color first`;
+		noti.style.background = "red";
+		noti.className = "notify shadow show animated slideInRight";
+		setTimeout(() => {
+			noti.className = "notify shadow show animated slideOutRight";
+		}, 2000);
+		return;
+	}
+	if(checkTolerance()===false){
+			return
+	}
+
+	if(imageBase64===null || imageBase64=== undefined){
+		noti.innerText = `Upload an image`;
+		noti.style.background = "red";
+		noti.className = "notify shadow show animated slideInRight";
+		setTimeout(() => {
+			noti.className = "notify shadow show animated slideOutRight";
+		}, 2000);
 		return;
 	}
 
-	console.log("processing image");
 	let selected = recentColors[0];
 
 	let rgbvalues = selected
@@ -129,45 +183,58 @@ function processImage() {
 		.map(Number)
 		.map((value) => value / 255);
 
-	let img = canvasImage;
-	drawImageOnCanvas(false, img.src);
-	console.log("image processed", img, rgbvalues);
+	// Example JavaScript code to call the Flask API
 
-	// // Example JavaScript code to call the Flask API
+	const apiUrl = "http://127.0.0.1:5000/process_image";
 
-	// const apiUrl = "http://localhost:5000/colorBasedSegmentation";
+	// Extract the base64 image data from the data URL
+	const imageData = imageBase64;
 
-	// // Input parameters
-	// const imageData = "base64_encoded_image_data_or_image_url";
-	// const targetColor = [0, 1, 1]; 
+	const targetColor = rgbvalues;
 
-	// // Data to be sent in the POST request
-	// const data = {
-	// 	imageData: imageData,
-	// 	targetColor: targetColor,
-	// };
+	// Data to be sent in the POST request
+	const data = {
+		imageData: imageData,
+		targetColor: targetColor,
+		tolerance:toleranceValue
+	};
 
-	// // Make the POST request to the Flask API
-	// fetch(apiUrl, {
-	// 	method: "POST",
-	// 	headers: {
-	// 		"Content-Type": "application/json",
-	// 	},
-	// 	body: JSON.stringify(data),
-	// })
-	// 	.then((response) => response.json())
-	// 	.then((result) => {
-	// 		// Handle the result returned from the Flask API
-	// 		const maskedImage = result.maskedImage;
-	// 		const highlightedShapes = result.highlightedShapes;
+	console.log(data);
+	// Make the POST request to the Flask API
+	fetch(apiUrl, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(data),
+	})
+		.then((response) => response.json())
+		.then((result) => {
+			// Handle the result returned from the Flask API
+			const maskedImage = result.maskedImage;
+			const highlightedShapes = result.highlightedShapes;
 
-	// 		// Use the maskedImage and highlightedShapes as needed
-	// 		console.log("maskedImage:", maskedImage);
-	// 		console.log("highlightedShapes:", highlightedShapes);
-	// 	})
-	// 	.catch((error) => {
-	// 		console.error("Error:", error);
-	// 	});
+			imageBox.innerHTML = "";
+
+			// Display the masked image
+			const imgMasked = document.createElement("img");
+			const imgTitleOne = document.createElement("h2");
+			imgTitleOne.innerText = "Masked Image";
+			imgMasked.src = "data:image/png;base64," + maskedImage;
+			imageBox.appendChild(imgTitleOne);
+			imageBox.appendChild(imgMasked);
+
+			// Display the highlighted shapes
+			const imgHighlighted = document.createElement("img");
+			const imgTitleTwo = document.createElement("h2");
+			imgTitleTwo.innerText = "Highlighted Image";
+			imgHighlighted.src = "data:image/png;base64," + highlightedShapes;
+			imageBox.appendChild(imgTitleTwo);
+			imageBox.appendChild(imgHighlighted);
+		})
+		.catch((error) => {
+			console.error("Error:", error);
+		});
 }
 
 // function to create notifications
@@ -179,9 +246,6 @@ function notify(color) {
 		noti.className = "notify shadow show animated slideOutRight";
 	}, 1000);
 }
-
-
-
 
 // This feature is the zoom and dragging one and i just copied it, i dont know shit about how this works
 window.onload = function () {

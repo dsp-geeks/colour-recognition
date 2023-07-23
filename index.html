@@ -20,11 +20,13 @@
             <span class="color"></span><p>Color Will Display Here</p>
         </div>
         <label for="Submit" style="cursor: pointer;" onclick="processImage()">Submit</label>
+        <input type="text" class="tolerance" placeholder="Enter tolerance(0 - 1)" required >
     </div>
     <div class="recent-colors"></div>
-    <input type="file"  accept="image/*" id="file" style="display: none;" onchange="drawImageOnCanvas(event)">
+    <input type="file"  accept="image/*" id="file" style="display: none;" onchange="drawImageOnCanvas(event);getBase64(event)">
     <input type="submit"  id="submit" style="display: none;" >
     <div class="notify shadow">Copied the Color Code: rgba(255, 255, 255,)</div>
+    <div class="image-box"></div>
 
 </body>
 <script src="./app.js"></script>
