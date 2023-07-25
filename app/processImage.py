@@ -39,7 +39,7 @@ def color_based_segmentation(image_data, target_color, tolerance, min_area_thres
                                  stats[label, cv2.CC_STAT_HEIGHT] + stats[label, cv2.CC_STAT_TOP], \
                                  stats[label, cv2.CC_STAT_WIDTH] + stats[label, cv2.CC_STAT_LEFT]
         color = (255, 255, 255)  # Set the boundary box color to blue (you can change this to any color)
-        cv2.rectangle(highlighted_shapes, (minc, minr), (maxc, maxr), color, 20)  # Draw boundary box
+        cv2.rectangle(highlighted_shapes, (minc, minr), (maxc, maxr), color, 10)  # Draw boundary box
 
     return masked_image, highlighted_shapes
 

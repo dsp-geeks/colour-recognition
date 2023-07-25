@@ -7,14 +7,16 @@ let canvas = document.getElementById("canvas"),
 	canvasImage,
 	imageBox = document.querySelector(".image-box"),
 	imageBase64,
-	tolerance=document.querySelector(".tolerance"),
-	toleranceValue=0.2;
+	tolerance = document.querySelector(".tolerance"),
+	toleranceValue = 0.2,
+	url_image;
 
-// window.onload = drawImageOnCanvas(false, "http://127.0.0.1:5500/demo.jpg");
+window.onload = drawImageOnCanvas(false, "http://127.0.0.1:5500/test02.jpg");
 
 // function to draw image on canvas
 function drawImageOnCanvas(input, img) {
 	input ? (url = URL.createObjectURL(input.target.files[0])) : (url = img);
+	url_image = url;
 	const image = new Image();
 	image.src = url;
 	image.onload = function () {
@@ -36,14 +38,34 @@ function drawImageOnCanvas(input, img) {
 	canvasImage = image;
 }
 
-function getBase64(event) {
-	const reader = new FileReader();
-	reader.onload = function (event) {
-		const base64Image = event.target.result;
-		imageBase64 = base64Image.split(",")[1];
-		console.log(imageBase64);
-	};
-	reader.readAsDataURL(event.target.files[0]);
+async function getBase64(url_image) {
+	return new Promise((resolve, reject) => {
+		// Extract the base64 image data from the data URL
+		if (url_image instanceof File) {
+			const reader = new FileReader();
+			reader.onload = function (event) {
+				const base64Image = event.target.result;
+				const imageBase64 = base64Image.split(",")[1];
+				resolve(imageBase64);
+			};
+			reader.readAsDataURL(url_image);
+		} else {
+			fetch(url_image)
+				.then((response) => response.blob())
+				.then((blob) => {
+					const reader = new FileReader();
+					reader.onload = function (event) {
+						const base64Image = event.target.result;
+						const imageBase64 = base64Image.split(",")[1];
+						resolve(imageBase64);
+					};
+					reader.readAsDataURL(blob);
+				})
+				.catch((error) => {
+					reject(error);
+				});
+		}
+	});
 }
 
 // function that identifies the color on mouse move
@@ -72,7 +94,6 @@ function extractColor(evt) {
 
 // function to display recent colors on screen
 function showRecentColors(color) {
-	console.log(recentColors);
 	recentColorsDiv.innerHTML = "";
 	if (recentColors.length <= 0) {
 		return;
@@ -125,14 +146,14 @@ function RGBToHex(color) {
 
 // check tolerance value
 function checkTolerance() {
-	if(tolerance.value===''){
+	if (tolerance.value === "") {
 		noti.innerText = `Enter tolerance`;
 		noti.style.background = "red";
 		noti.className = "notify shadow show animated slideInRight";
 		setTimeout(() => {
 			noti.className = "notify shadow show animated slideOutRight";
 		}, 2000);
-		return false
+		return false;
 	}
 	const toleranceInput = tolerance.value.trim(); // Remove leading and trailing spaces
 	const tolerance_value = parseFloat(toleranceInput);
@@ -144,10 +165,10 @@ function checkTolerance() {
 		setTimeout(() => {
 			noti.className = "notify shadow show animated slideOutRight";
 		}, 2000);
-		return false
+		return false;
 	} else {
-		toleranceValue = tolerance_value
-		return true
+		toleranceValue = tolerance_value;
+		return true;
 	}
 }
 
@@ -162,19 +183,19 @@ function processImage() {
 		}, 2000);
 		return;
 	}
-	if(checkTolerance()===false){
-			return
-	}
-
-	if(imageBase64===null || imageBase64=== undefined){
-		noti.innerText = `Upload an image`;
-		noti.style.background = "red";
-		noti.className = "notify shadow show animated slideInRight";
-		setTimeout(() => {
-			noti.className = "notify shadow show animated slideOutRight";
-		}, 2000);
+	if (checkTolerance() === false) {
 		return;
 	}
+
+	// if(imageBase64===null || imageBase64=== undefined){
+	// 	noti.innerText = `Upload an image`;
+	// 	noti.style.background = "red";
+	// 	noti.className = "notify shadow show animated slideInRight";
+	// 	setTimeout(() => {
+	// 		noti.className = "notify shadow show animated slideOutRight";
+	// 	}, 2000);
+	// 	return;
+	// }
 
 	let selected = recentColors[0];
 
@@ -187,54 +208,58 @@ function processImage() {
 
 	const apiUrl = "http://127.0.0.1:5000/process_image";
 
-	// Extract the base64 image data from the data URL
-	const imageData = imageBase64;
+	async function getBase64Image(url) {
+		return await getBase64(url);
+	}
 
-	const targetColor = rgbvalues;
+	getBase64Image(url_image).then((imageBase64) => {
+		const image_data = imageBase64;
+		const targetColor = rgbvalues;
 
-	// Data to be sent in the POST request
-	const data = {
-		imageData: imageData,
-		targetColor: targetColor,
-		tolerance:toleranceValue
-	};
+		// Data to be sent in the POST request
+		const data = {
+			imageData: image_data,
+			targetColor: targetColor,
+			tolerance: toleranceValue,
+		};
 
-	console.log(data);
-	// Make the POST request to the Flask API
-	fetch(apiUrl, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify(data),
-	})
-		.then((response) => response.json())
-		.then((result) => {
-			// Handle the result returned from the Flask API
-			const maskedImage = result.maskedImage;
-			const highlightedShapes = result.highlightedShapes;
-
-			imageBox.innerHTML = "";
-
-			// Display the masked image
-			const imgMasked = document.createElement("img");
-			const imgTitleOne = document.createElement("h2");
-			imgTitleOne.innerText = "Masked Image";
-			imgMasked.src = "data:image/png;base64," + maskedImage;
-			imageBox.appendChild(imgTitleOne);
-			imageBox.appendChild(imgMasked);
-
-			// Display the highlighted shapes
-			const imgHighlighted = document.createElement("img");
-			const imgTitleTwo = document.createElement("h2");
-			imgTitleTwo.innerText = "Highlighted Image";
-			imgHighlighted.src = "data:image/png;base64," + highlightedShapes;
-			imageBox.appendChild(imgTitleTwo);
-			imageBox.appendChild(imgHighlighted);
+		// Make the POST request to the Flask API
+		fetch(apiUrl, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(data),
 		})
-		.catch((error) => {
-			console.error("Error:", error);
-		});
+			.then((response) => response.json())
+			.then((result) => {
+				// Handle the result returned from the Flask API
+				const maskedImage = result.maskedImage;
+				const highlightedShapes = result.highlightedShapes;
+
+				imageBox.innerHTML = "";
+
+				// Display the masked image
+				const imgMasked = document.createElement("img");
+				const imgTitleOne = document.createElement("h2");
+				imgTitleOne.innerText = "Masked Image";
+				imgMasked.src = "data:image/png;base64," + maskedImage;
+				imageBox.appendChild(imgTitleOne);
+				imageBox.appendChild(imgMasked);
+
+				// Display the highlighted shapes
+				const imgHighlighted = document.createElement("img");
+				const imgTitleTwo = document.createElement("h2");
+				imgTitleTwo.innerText = "Highlighted Image";
+				imgHighlighted.src =
+					"data:image/png;base64," + highlightedShapes;
+				imageBox.appendChild(imgTitleTwo);
+				imageBox.appendChild(imgHighlighted);
+			})
+			.catch((error) => {
+				console.error("Error:", error);
+			});
+	});
 }
 
 // function to create notifications
